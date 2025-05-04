@@ -57,8 +57,6 @@ public class KafkaProducerSampler<K, V> extends AbstractTestElement implements S
     private String kafkaMessage;
     private List<VariableSettings> messageHeaders;
     private String kafkaProducerClientVariableName;
-    private String kafkaProducerSerializerKeyVariableName;
-    private String kafkaProducerSerializerValueVariableName;
 
     @Override
     public SampleResult sample(Entry e) {
@@ -77,8 +75,7 @@ public class KafkaProducerSampler<K, V> extends AbstractTestElement implements S
             Future<RecordMetadata> metaData = kafkaProducer.send(producerRecord);
             RecordMetadata recordMetadata = metaData.get();
             result.setResponseData("Success", StandardCharsets.UTF_8.name());
-            result.setResponseHeaders(String.format("Topic: %s\nOffset: %s\nPartition: %s\nTimestamp: %s",
-                    recordMetadata.topic(), recordMetadata.offset(), recordMetadata.partition(), recordMetadata.timestamp()));
+            result.setResponseHeaders(String.format("Topic: %s\nOffset: %s\nPartition: %s\nTimestamp: %s", recordMetadata.topic(), recordMetadata.offset(), recordMetadata.partition(), recordMetadata.timestamp()));
             result.setResponseOK();
         } catch (Exception ex) {
             log.error("Exception occurred while sending message to Kafka", ex);
@@ -176,14 +173,6 @@ public class KafkaProducerSampler<K, V> extends AbstractTestElement implements S
         this.kafkaProducerClientVariableName = kafkaProducerClientVariableName;
     }
 
-    public String getKafkaProducerSerializerKeyVariableName() {
-        return kafkaProducerSerializerKeyVariableName;
-    }
-
-    public String getKafkaProducerSerializerValueVariableName() {
-        return kafkaProducerSerializerValueVariableName;
-    }
-
     public String getKafkaTopic() {
         return kafkaTopic;
     }
@@ -247,10 +236,10 @@ public class KafkaProducerSampler<K, V> extends AbstractTestElement implements S
     }
 
     private String getProducerSerializerKey() {
-        return JMeterContextService.getContext().getVariables().get(kafkaProducerSerializerKeyVariableName);
+        return JMeterContextService.getContext().getVariables().get("producerSerializerKeyVariableName");
     }
 
     private String getProducerSerializerValue() {
-        return JMeterContextService.getContext().getVariables().get(kafkaProducerSerializerValueVariableName);
+        return JMeterContextService.getContext().getVariables().get("producerSerializerValueVariableName");
     }
 }
