@@ -25,14 +25,14 @@ public class KafkaConsumerSamplerBeanInfo extends BeanInfoSupport {
 
     public KafkaConsumerSamplerBeanInfo() {
         super(KafkaConsumerSampler.class);
-        createPropertyGroup("Variable Name bound to Kafka Client", new String[] {"kafkaConsumerClientVariableName"});
-        createPropertyGroup("Consumer Settings", new String[] {"pollTimeout", "commitType"});
+        createPropertyGroup("Variable Name bound to Kafka Client", new String[]{"kafkaConsumerClientVariableName"});
+        createPropertyGroup("Consumer Settings", new String[]{"pollTimeout", "commitType"});
 
-        PropertyDescriptor varPropDesc = property("kafkaConsumerClientVariableName");
-        varPropDesc.setValue(NOT_UNDEFINED, Boolean.TRUE);
-        varPropDesc.setValue(DEFAULT, "KafkaConsumerClient");
-        varPropDesc.setDisplayName("Variable Name of Consumer Client declared in Config element");
-        varPropDesc.setShortDescription("Variable name declared in Kafka Consumer client config");
+        PropertyDescriptor kafkaConsumerClientVariableNamePropDesc = property("kafkaConsumerClientVariableName");
+        kafkaConsumerClientVariableNamePropDesc.setValue(NOT_UNDEFINED, Boolean.TRUE);
+        kafkaConsumerClientVariableNamePropDesc.setValue(DEFAULT, "KafkaConsumerClient");
+        kafkaConsumerClientVariableNamePropDesc.setDisplayName("Variable Name of Consumer Client declared in Config element");
+        kafkaConsumerClientVariableNamePropDesc.setShortDescription("Variable name declared in Kafka Consumer client config");
 
         PropertyDescriptor consumerSettingsPropDesc = property("pollTimeout");
         consumerSettingsPropDesc.setValue(NOT_UNDEFINED, Boolean.TRUE);
@@ -45,6 +45,5 @@ public class KafkaConsumerSamplerBeanInfo extends BeanInfoSupport {
         consumerSettingsPropDesc.setValue(DEFAULT, "Sync");
         consumerSettingsPropDesc.setDisplayName("Commit Type");
         consumerSettingsPropDesc.setShortDescription("Commit type - Sync/Async");
-
     }
 }

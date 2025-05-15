@@ -17,6 +17,9 @@
  */
 package com.ankat.sampler;
 
+import lombok.Getter;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.jmeter.config.ConfigTestElement;
 import org.apache.jmeter.engine.util.ConfigMergabilityIndicator;
 import org.apache.jmeter.gui.Searchable;
@@ -34,8 +37,6 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
@@ -44,14 +45,12 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 
+@Slf4j
 public class KafkaConsumerSampler<K, V> extends AbstractTestElement implements Sampler, TestBean, ConfigMergabilityIndicator, TestStateListener, TestElement, Serializable, Searchable {
-    private static final Logger log = LoggerFactory.getLogger(KafkaConsumerSampler.class);
-
-    private String pollTimeout;
-    private String commitType;
     private final long DEFAULT_TIMEOUT = 100;
-    private KafkaConsumer<K, V> kafkaConsumer;
-    private String kafkaConsumerClientVariableName;
+    @Getter @Setter private String pollTimeout;
+    @Getter @Setter private String commitType;
+    @Getter @Setter private String kafkaConsumerClientVariableName;
 
     @Override
     public SampleResult sample(Entry entry) {
@@ -79,7 +78,7 @@ public class KafkaConsumerSampler<K, V> extends AbstractTestElement implements S
     }
 
     private ConsumerRecords<K, V> getConsumerRecords(KafkaConsumer<K, V> consumer) {
-        long timeout = pollTimeout != null && !pollTimeout.isEmpty() ? Long.parseLong(pollTimeout) : DEFAULT_TIMEOUT;
+        long timeout = Objects.nonNull(pollTimeout) && !pollTimeout.isEmpty() ? Long.parseLong(pollTimeout) : DEFAULT_TIMEOUT;
         ConsumerRecords<K, V> records;
         do {
             records = consumer.poll(Duration.ofMillis(timeout)); // This will poll Single/multiple messages of records as per the config
@@ -89,10 +88,7 @@ public class KafkaConsumerSampler<K, V> extends AbstractTestElement implements S
             log.debug(String.format("offset = %d, key = %s, value = %s%n", record.offset(), record.key(), record.value()));
 
             // Commit offset of the message
-            Map<TopicPartition, OffsetAndMetadata> offset = Collections.singletonMap(
-                    new TopicPartition(record.topic(), record.partition()),
-                    new OffsetAndMetadata(record.offset() + 1)
-            );
+            Map<TopicPartition, OffsetAndMetadata> offset = Collections.singletonMap(new TopicPartition(record.topic(), record.partition()), new OffsetAndMetadata(record.offset() + 1));
 
             if (getCommitType().equalsIgnoreCase("sync")) {
                 consumer.commitSync(offset); //Commit the offset after reading single message
@@ -117,8 +113,7 @@ public class KafkaConsumerSampler<K, V> extends AbstractTestElement implements S
             String valueDeserializerClassName = JMeterContextService.getContext().getVariables().get("consumerDeserializerValueVariableName");
 
             for (ConsumerRecord<K, V> record : consumerRecords) {
-                headers.append(String.format("Timestamp: %d\nTopic: %s\nPartition: %d\nOffset: %d\nHeaders: %s\n\n",
-                        record.timestamp(), record.topic(), record.partition(), record.offset(), record.headers()));
+                headers.append(String.format("Timestamp: %d\nTopic: %s\nPartition: %d\nOffset: %d\nHeaders: %s\n\n", record.timestamp(), record.topic(), record.partition(), record.offset(), record.headers()));
                 String key = getTypedValue(record.key(), keyDeserializerClassName);
                 String value = getTypedValue(record.value(), valueDeserializerClassName);
                 response.append(key).append(": ").append(value).append("\n\n");
@@ -140,10 +135,7 @@ public class KafkaConsumerSampler<K, V> extends AbstractTestElement implements S
                 return (String) value;
             } else if (deserializerClass.equals(ByteArrayDeserializer.class)) {
                 return new String((byte[]) value, StandardCharsets.UTF_8);
-            } else if (deserializerClass.equals(IntegerDeserializer.class) ||
-                    deserializerClass.equals(LongDeserializer.class) ||
-                    deserializerClass.equals(FloatDeserializer.class) ||
-                    deserializerClass.equals(DoubleDeserializer.class)) {
+            } else if (deserializerClass.equals(IntegerDeserializer.class) || deserializerClass.equals(LongDeserializer.class) || deserializerClass.equals(FloatDeserializer.class) || deserializerClass.equals(DoubleDeserializer.class)) {
                 return value.toString();
             }
             throw new IllegalArgumentException("Unsupported deserializer type: " + deserializerClass.getName());
@@ -171,6 +163,7 @@ public class KafkaConsumerSampler<K, V> extends AbstractTestElement implements S
 
     @Override
     public void testStarted(String s) {
+        testStarted();
     }
 
     @Override
@@ -179,32 +172,7 @@ public class KafkaConsumerSampler<K, V> extends AbstractTestElement implements S
 
     @Override
     public void testEnded(String s) {
-    }
-
-    //Getters and setters
-
-    public String getKafkaConsumerClientVariableName() {
-        return kafkaConsumerClientVariableName;
-    }
-
-    public void setKafkaConsumerClientVariableName(String kafkaConsumerClientVariableName) {
-        this.kafkaConsumerClientVariableName = kafkaConsumerClientVariableName;
-    }
-
-    public String getPollTimeout() {
-        return (Objects.nonNull(pollTimeout) && !pollTimeout.isEmpty()) ? pollTimeout : String.valueOf(DEFAULT_TIMEOUT);
-    }
-
-    public void setPollTimeout(String pollTimeout) {
-        this.pollTimeout = pollTimeout;
-    }
-
-    public String getCommitType() {
-        return commitType;
-    }
-
-    public void setCommitType(String commitType) {
-        this.commitType = commitType;
+        testEnded();
     }
 
     public KafkaConsumer<K, V> getKafkaConsumerClient() {
@@ -227,5 +195,4 @@ public class KafkaConsumerSampler<K, V> extends AbstractTestElement implements S
             throw new IllegalStateException("Failed to cast object to KafkaConsumer<K, V>. This might be due to a mismatch in generic types.", e);
         }
     }
-
 }

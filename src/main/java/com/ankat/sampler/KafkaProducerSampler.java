@@ -17,7 +17,14 @@
  */
 package com.ankat.sampler;
 
+import com.ankat.avro.AvroSerializer;
+import com.ankat.model.CamMessage;
 import com.ankat.utils.VariableSettings;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.jmeter.config.ConfigTestElement;
 import org.apache.jmeter.engine.util.ConfigMergabilityIndicator;
 import org.apache.jmeter.gui.Searchable;
@@ -34,8 +41,6 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.apache.kafka.common.serialization.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
@@ -43,20 +48,19 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
+@Slf4j
 public class KafkaProducerSampler<K, V> extends AbstractTestElement implements Sampler, TestBean, ConfigMergabilityIndicator, TestStateListener, TestElement, Serializable, Searchable {
-    private static final Logger log = LoggerFactory.getLogger(KafkaProducerSampler.class);
-    private static final long serialVersionUID = -1299097780294947281L;
-    private static final Set<String> APPLIABLE_CONFIG_CLASSES = new HashSet<>(
-            Collections.singletonList("org.apache.jmeter.config.gui.SimpleConfigGui"));
 
-    private String kafkaTopic;
-    private String partitionString;
-    private String kafkaMessageKey;
-    private String kafkaMessage;
-    private List<VariableSettings> messageHeaders;
-    private String kafkaProducerClientVariableName;
+    private static final Set<String> APPLIABLE_CONFIG_CLASSES = new HashSet<>(Collections.singletonList("org.apache.jmeter.config.gui.SimpleConfigGui"));
+    @Getter @Setter private String kafkaTopic;
+    @Getter @Setter private String partitionString;
+    @Getter @Setter private String kafkaMessageKey;
+    @Getter @Setter private String kafkaMessageValue;
+    @Getter @Setter private List<VariableSettings> messageHeaders;
+    @Getter @Setter private String kafkaProducerClientVariableName;
 
     @Override
     public SampleResult sample(Entry e) {
@@ -65,11 +69,10 @@ public class KafkaProducerSampler<K, V> extends AbstractTestElement implements S
         result.setDataType(SampleResult.TEXT);
         result.setContentType("text/plain");
         result.setDataEncoding(StandardCharsets.UTF_8.name());
-
         try {
             KafkaProducer<K, V> kafkaProducer = getKafkaProducerClient();
             ProducerRecord<K, V> producerRecord = getProducerRecord(kafkaProducer);
-            result.setSamplerData(kafkaMessageKey + ": " + kafkaMessage);
+            result.setSamplerData(kafkaMessageKey + ": " + kafkaMessageValue);
             result.setRequestHeaders(producerRecord.headers().toString());
             result.sampleStart();
             Future<RecordMetadata> metaData = kafkaProducer.send(producerRecord);
@@ -77,7 +80,7 @@ public class KafkaProducerSampler<K, V> extends AbstractTestElement implements S
             result.setResponseData("Success", StandardCharsets.UTF_8.name());
             result.setResponseHeaders(String.format("Topic: %s\nOffset: %s\nPartition: %s\nTimestamp: %s", recordMetadata.topic(), recordMetadata.offset(), recordMetadata.partition(), recordMetadata.timestamp()));
             result.setResponseOK();
-        } catch (Exception ex) {
+        } catch (InterruptedException | ExecutionException ex) {
             log.error("Exception occurred while sending message to Kafka", ex);
             result.setResponseMessage("Error sending message to Kafka topic");
             result.setResponseCode("500");
@@ -92,7 +95,7 @@ public class KafkaProducerSampler<K, V> extends AbstractTestElement implements S
     @SuppressWarnings("unchecked")
     private ProducerRecord<K, V> getProducerRecord(KafkaProducer<K, V> producer) {
         K key = (K) getTypedValue(getKafkaMessageKey(), getProducerSerializerKey());
-        V value = (V) getTypedValue(getKafkaMessage(), getProducerSerializerValue());
+        V value = (V) getTypedValue(getKafkaMessageValue(), getProducerSerializerValue());
 
         // Create the producer record with or without a specific partition
         ProducerRecord<K, V> producerRecord;
@@ -124,6 +127,12 @@ public class KafkaProducerSampler<K, V> extends AbstractTestElement implements S
                 return Float.valueOf(value);
             } else if (serializerClass.equals(DoubleSerializer.class)) {
                 return Double.valueOf(value);
+            } else if (serializerClass.equals(AvroSerializer.class)) {
+                try {
+                    return new ObjectMapper().readValue(value, CamMessage.class);
+                } catch (JsonProcessingException exception) {
+                    log.error("Error deserializing Avro Message", exception);
+                }
             }
             throw new IllegalArgumentException("Unsupported serializer type: " + serializerClassName);
         } catch (ClassNotFoundException e) {
@@ -147,70 +156,22 @@ public class KafkaProducerSampler<K, V> extends AbstractTestElement implements S
 
     @Override
     public void testStarted(String host) {
+        testStarted();
     }
 
     @Override
     public void testEnded() {
-
     }
 
     @Override
     public void testEnded(String host) {
+        testEnded();
     }
 
     @Override
     public boolean applies(ConfigTestElement configElement) {
         String guiClass = configElement.getProperty(TestElement.GUI_CLASS).getStringValue();
         return APPLIABLE_CONFIG_CLASSES.contains(guiClass);
-    }
-
-    //Getters Setters
-    public String getKafkaProducerClientVariableName() {
-        return kafkaProducerClientVariableName;
-    }
-
-    public void setKafkaProducerClientVariableName(String kafkaProducerClientVariableName) {
-        this.kafkaProducerClientVariableName = kafkaProducerClientVariableName;
-    }
-
-    public String getKafkaTopic() {
-        return kafkaTopic;
-    }
-
-    public void setKafkaTopic(String kafkaTopic) {
-        this.kafkaTopic = kafkaTopic;
-    }
-
-    public String getPartitionString() {
-        return partitionString;
-    }
-
-    public void setPartitionString(String partitionString) {
-        this.partitionString = partitionString;
-    }
-
-    public String getKafkaMessageKey() {
-        return kafkaMessageKey.isEmpty() ? null : kafkaMessageKey;
-    }
-
-    public void setKafkaMessageKey(String kafkaMessageKey) {
-        this.kafkaMessageKey = kafkaMessageKey;
-    }
-
-    public String getKafkaMessage() {
-        return kafkaMessage;
-    }
-
-    public void setKafkaMessage(String kafkaMessage) {
-        this.kafkaMessage = kafkaMessage;
-    }
-
-    public List<VariableSettings> getMessageHeaders() {
-        return messageHeaders;
-    }
-
-    public void setMessageHeaders(List<VariableSettings> messageHeaders) {
-        this.messageHeaders = messageHeaders;
     }
 
     @SuppressWarnings("unchecked")

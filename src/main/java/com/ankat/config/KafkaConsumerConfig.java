@@ -18,6 +18,9 @@
 package com.ankat.config;
 
 import com.ankat.utils.VariableSettings;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.jmeter.config.ConfigElement;
 import org.apache.jmeter.config.ConfigTestElement;
 import org.apache.jmeter.testbeans.TestBean;
@@ -27,35 +30,31 @@ import org.apache.jmeter.threads.JMeterVariables;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.Deserializer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Properties;
 
+@Slf4j
 public class KafkaConsumerConfig<K, V> extends ConfigTestElement implements ConfigElement, TestBean, TestStateListener, Serializable {
-    private static final Logger log = LoggerFactory.getLogger(KafkaConsumerConfig.class);
-    private static final long serialVersionUID = 3328926106250797599L;
-
-    private KafkaConsumer<K, V> kafkaConsumer;
-    private List<VariableSettings> extraConfigs;
-    private String kafkaBrokers;
-    private String groupId;
-    private String topic;
-    private String numberOfMsgToPoll;
-    private boolean autoCommit;
-    private String deSerializerKey;
-    private String deSerializerValue;
-    private String securityType;
-    private String kafkaSslKeystore; // Kafka ssl keystore (include path information); e.g; "server.keystore.jks"
-    private String kafkaSslKeystorePassword; // Keystore Password
-    private String kafkaSslTruststore;
-    private String kafkaSslTruststorePassword;
-    private String kafkaSslPrivateKeyPass;
-    private String kafkaConsumerClientVariableName;
-
+    @Getter @Setter private KafkaConsumer<K, V> kafkaConsumer;
+    @Getter @Setter private List<VariableSettings> extraConfigs;
+    @Getter @Setter private String kafkaBrokers;
+    @Getter @Setter private String groupId;
+    @Getter @Setter private String topic;
+    @Getter @Setter private String numberOfMsgToPoll;
+    @Getter @Setter private boolean autoCommit;
+    @Getter @Setter private String deSerializerKey;
+    @Getter @Setter private String deSerializerValue;
+    @Getter @Setter private String securityType;
+    @Getter @Setter private String kafkaSslKeystore; // Kafka ssl keystore (include path information); e.g; "server.keystore.jks"
+    @Getter @Setter private String kafkaSslKeystorePassword; // Keystore Password
+    @Getter @Setter private String kafkaSslTruststore;
+    @Getter @Setter private String kafkaSslTruststorePassword;
+    @Getter @Setter private String kafkaSslPrivateKeyPass;
+    @Getter @Setter private String kafkaConsumerClientVariableName;
 
     @Override
     public void addConfigElement(ConfigElement config) {
@@ -70,20 +69,20 @@ public class KafkaConsumerConfig<K, V> extends ConfigTestElement implements Conf
         if (variables.getObject(kafkaConsumerClientVariableName) != null) {
             log.error("Kafka consumer is already running.");
         } else {
-            synchronized (this) {
-                try {
-                    String deSerializerKey = getDeSerializerKey();
-                    String deSerializerValue = getDeSerializerValue();
-                    Deserializer<K> consumerDeserializerKey = createDeserializer(deSerializerKey);
-                    Deserializer<V> consumerDeserializerValue = createDeserializer(deSerializerValue);
-                    kafkaConsumer = new KafkaConsumer<>(getProperties(), consumerDeserializerKey, consumerDeserializerValue);
-                    kafkaConsumer.subscribe(Collections.singletonList(getTopic()));
-                    variables.putObject(kafkaConsumerClientVariableName, kafkaConsumer);
-                    variables.putObject("consumerDeserializerKeyVariableName", deSerializerKey);
-                    variables.putObject("consumerDeserializerValueVariableName", deSerializerValue);
-                    log.info("Kafka consumer client successfully Initialized");
-                } catch (Exception e) {
-                    log.error("Error establishing kafka consumer client!", e);
+            if ((Objects.nonNull(getDeSerializerKey()) && !getDeSerializerKey().trim().isEmpty()) && (Objects.nonNull(getDeSerializerValue()) && !getDeSerializerValue().trim().isEmpty())) {
+                synchronized (this) {
+                    try {
+                        Deserializer<K> consumerDeserializerKey = createDeserializer(getDeSerializerKey());
+                        Deserializer<V> consumerDeserializerValue = createDeserializer(getDeSerializerValue());
+                        kafkaConsumer = new KafkaConsumer<>(getProperties(), consumerDeserializerKey, consumerDeserializerValue);
+                        kafkaConsumer.subscribe(Collections.singletonList(getTopic()));
+                        variables.putObject(kafkaConsumerClientVariableName, kafkaConsumer);
+                        variables.putObject("consumerDeserializerKeyVariableName", getDeSerializerKey());
+                        variables.putObject("consumerDeserializerValueVariableName", getDeSerializerValue());
+                        log.info("Kafka consumer client successfully Initialized");
+                    } catch (Exception e) {
+                        log.error("Error establishing kafka consumer client!", e);
+                    }
                 }
             }
         }
@@ -145,130 +144,5 @@ public class KafkaConsumerConfig<K, V> extends ConfigTestElement implements Conf
     @Override
     public void testEnded(String host) {
         testEnded();
-    }
-
-    // Getters and setters
-    public KafkaConsumer<K, V> getKafkaConsumer() {
-        return kafkaConsumer;
-    }
-
-    public String getKafkaConsumerClientVariableName() {
-        return kafkaConsumerClientVariableName;
-    }
-
-    public void setKafkaConsumerClientVariableName(String kafkaConsumerClientVariableName) {
-        this.kafkaConsumerClientVariableName = kafkaConsumerClientVariableName;
-    }
-
-    public String getKafkaBrokers() {
-        return kafkaBrokers;
-    }
-
-    public void setKafkaBrokers(String kafkaBrokers) {
-        this.kafkaBrokers = kafkaBrokers;
-    }
-
-    public String getSecurityType() {
-        return securityType;
-    }
-
-    public void setSecurityType(String securityType) {
-        this.securityType = securityType;
-    }
-
-    public String getKafkaSslKeystore() {
-        return kafkaSslKeystore;
-    }
-
-    public void setKafkaSslKeystore(String kafkaSslKeystore) {
-        this.kafkaSslKeystore = kafkaSslKeystore;
-    }
-
-    public String getKafkaSslKeystorePassword() {
-        return kafkaSslKeystorePassword;
-    }
-
-    public void setKafkaSslKeystorePassword(String kafkaSslKeystorePassword) {
-        this.kafkaSslKeystorePassword = kafkaSslKeystorePassword;
-    }
-
-    public String getKafkaSslTruststore() {
-        return kafkaSslTruststore;
-    }
-
-    public void setKafkaSslTruststore(String kafkaSslTruststore) {
-        this.kafkaSslTruststore = kafkaSslTruststore;
-    }
-
-    public String getKafkaSslTruststorePassword() {
-        return kafkaSslTruststorePassword;
-    }
-
-    public void setKafkaSslTruststorePassword(String kafkaSslTruststorePassword) {
-        this.kafkaSslTruststorePassword = kafkaSslTruststorePassword;
-    }
-
-    public String getKafkaSslPrivateKeyPass() {
-        return kafkaSslPrivateKeyPass;
-    }
-
-    public void setKafkaSslPrivateKeyPass(String kafkaSslPrivateKeyPass) {
-        this.kafkaSslPrivateKeyPass = kafkaSslPrivateKeyPass;
-    }
-
-    public void setExtraConfigs(List<VariableSettings> extraConfigs) {
-        this.extraConfigs = extraConfigs;
-    }
-
-    public List<VariableSettings> getExtraConfigs() {
-        return this.extraConfigs;
-    }
-
-    public String getGroupId() {
-        return groupId;
-    }
-
-    public void setGroupId(String groupId) {
-        this.groupId = groupId;
-    }
-
-    public String getTopic() {
-        return topic;
-    }
-
-    public void setTopic(String topic) {
-        this.topic = topic;
-    }
-
-    public String getNumberOfMsgToPoll() {
-        return numberOfMsgToPoll;
-    }
-
-    public void setNumberOfMsgToPoll(String numberOfMsgToPoll) {
-        this.numberOfMsgToPoll = numberOfMsgToPoll;
-    }
-
-    public boolean isAutoCommit() {
-        return autoCommit;
-    }
-
-    public void setAutoCommit(boolean autoCommit) {
-        this.autoCommit = autoCommit;
-    }
-
-    public String getDeSerializerKey() {
-        return deSerializerKey;
-    }
-
-    public void setDeSerializerKey(String deSerializerKey) {
-        this.deSerializerKey = deSerializerKey;
-    }
-
-    public String getDeSerializerValue() {
-        return deSerializerValue;
-    }
-
-    public void setDeSerializerValue(String deSerializerValue) {
-        this.deSerializerValue = deSerializerValue;
     }
 }

@@ -26,47 +26,47 @@ import java.beans.PropertyDescriptor;
 import java.util.ArrayList;
 
 public class KafkaProducerSamplerBeanInfo extends BeanInfoSupport {
-	
-	public KafkaProducerSamplerBeanInfo() {
-		super(KafkaProducerSampler.class);
 
-		createPropertyGroup("Variable Name bound to Kafka Client", new String[] {"kafkaProducerClientVariableName"});
-		createPropertyGroup("Message to Produce", new String[] { "kafkaTopic","partitionString","kafkaMessageKey","kafkaMessage","messageHeaders" });
+    public KafkaProducerSamplerBeanInfo() {
+        super(KafkaProducerSampler.class);
 
-		PropertyDescriptor kafkaProducerClientVariableNamePropDesc =  property("kafkaProducerClientVariableName");
-		kafkaProducerClientVariableNamePropDesc.setValue(NOT_UNDEFINED, Boolean.TRUE);
-		kafkaProducerClientVariableNamePropDesc.setValue(DEFAULT, "KafkaProducerClient");
-		kafkaProducerClientVariableNamePropDesc.setDisplayName("Variable Name of Producer Client declared in Config element");
-		kafkaProducerClientVariableNamePropDesc.setShortDescription("Variable name declared in Kafka Producer client config");
+        createPropertyGroup("Variable Name bound to Kafka Client", new String[]{"kafkaProducerClientVariableName"});
+        createPropertyGroup("Message to Produce", new String[]{"kafkaTopic", "partitionString", "kafkaMessageKey", "kafkaMessageValue", "messageHeaders"});
 
-		PropertyDescriptor propDesc = property("kafkaTopic");
-		propDesc.setValue(NOT_UNDEFINED, Boolean.TRUE);
-		propDesc.setValue(DEFAULT, "kafka_topic");
-		propDesc.setDisplayName("Kafka Topic");
+        PropertyDescriptor kafkaProducerClientVariableNamePropDesc = property("kafkaProducerClientVariableName");
+        kafkaProducerClientVariableNamePropDesc.setValue(NOT_UNDEFINED, Boolean.TRUE);
+        kafkaProducerClientVariableNamePropDesc.setValue(DEFAULT, "KafkaProducerClient");
+        kafkaProducerClientVariableNamePropDesc.setDisplayName("Variable Name of Producer Client declared in Config element");
+        kafkaProducerClientVariableNamePropDesc.setShortDescription("Variable name declared in Kafka Producer client config");
 
-		propDesc = property("partitionString");
-		propDesc.setValue(NOT_UNDEFINED, Boolean.TRUE);
-		propDesc.setValue(DEFAULT, "");
-		propDesc.setDisplayName("Partition String");
-		propDesc.setShortDescription("Leave it blank/empty if not required");
+        PropertyDescriptor producerSettingsPropDesc = property("kafkaTopic");
+        producerSettingsPropDesc.setValue(NOT_UNDEFINED, Boolean.TRUE);
+        producerSettingsPropDesc.setValue(DEFAULT, "kafka_topic");
+        producerSettingsPropDesc.setDisplayName("Kafka Topic");
 
-		propDesc = property("kafkaMessageKey");
-		propDesc.setValue(NOT_UNDEFINED, Boolean.TRUE);
-		propDesc.setValue(DEFAULT, "Key");
-		propDesc.setDisplayName("Kafka Message Key");
-		propDesc.setShortDescription("Kafka Message Key (blank/empty for null key)");
+        producerSettingsPropDesc = property("partitionString");
+        producerSettingsPropDesc.setValue(NOT_UNDEFINED, Boolean.TRUE);
+        producerSettingsPropDesc.setValue(DEFAULT, "");
+        producerSettingsPropDesc.setDisplayName("Partition String");
+        producerSettingsPropDesc.setShortDescription("Leave it blank/empty if not required");
 
-		propDesc = property("kafkaMessage", TypeEditor.TextAreaEditor);
-		propDesc.setValue(NOT_UNDEFINED, Boolean.TRUE);
-		propDesc.setValue(DEFAULT, "{\"Message\": \"It's a Hello from DI Kafka Sampler!\"}");
-		propDesc.setDisplayName("Kafka Message");
+        producerSettingsPropDesc = property("kafkaMessageKey");
+        producerSettingsPropDesc.setValue(NOT_UNDEFINED, Boolean.TRUE);
+        producerSettingsPropDesc.setValue(DEFAULT, "Key");
+        producerSettingsPropDesc.setDisplayName("Kafka Message Key");
+        producerSettingsPropDesc.setShortDescription("Kafka Message Key (blank/empty for null key)");
 
-		PropertyDescriptor headerTable = property("messageHeaders", TypeEditor.TableEditor);
-		headerTable.setValue(TableEditor.CLASSNAME, VariableSettings.class.getName());
-		headerTable.setValue(TableEditor.HEADERS, new String[]{ "Key", "Value" } );
-		headerTable.setValue(TableEditor.OBJECT_PROPERTIES, new String[]{ VariableSettings.KEY, VariableSettings.VALUE } );
-		headerTable.setValue(DEFAULT, new ArrayList<>());
-		headerTable.setValue(NOT_UNDEFINED, Boolean.TRUE);
-		headerTable.setDisplayName("Message Headers (Optional)");
-	}
+        producerSettingsPropDesc = property("kafkaMessageValue", TypeEditor.TextAreaEditor);
+        producerSettingsPropDesc.setValue(NOT_UNDEFINED, Boolean.TRUE);
+        producerSettingsPropDesc.setValue(DEFAULT, "{\"Message\": \"It's a Hello from DI Kafka Sampler!\"}");
+        producerSettingsPropDesc.setDisplayName("Kafka Message");
+
+        PropertyDescriptor headerTable = property("messageHeaders", TypeEditor.TableEditor);
+        headerTable.setValue(TableEditor.CLASSNAME, VariableSettings.class.getName());
+        headerTable.setValue(TableEditor.HEADERS, new String[]{"Key", "Value"});
+        headerTable.setValue(TableEditor.OBJECT_PROPERTIES, new String[]{VariableSettings.KEY, VariableSettings.VALUE});
+        headerTable.setValue(DEFAULT, new ArrayList<>());
+        headerTable.setValue(NOT_UNDEFINED, Boolean.TRUE);
+        headerTable.setDisplayName("Message Headers (Optional)");
+    }
 }

@@ -1,44 +1,39 @@
 package com.ankat.config;
 
+import lombok.Getter;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.jmeter.config.ConfigElement;
 import org.apache.jmeter.config.ConfigTestElement;
 import org.apache.jmeter.services.FileServer;
 import org.apache.jmeter.testbeans.TestBean;
 import org.apache.jmeter.testelement.TestStateListener;
 import org.apache.jmeter.util.JMeterUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.Serializable;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Objects;
 
-public class PropertyReader extends ConfigTestElement implements TestBean, TestStateListener {
-    private static final Logger log = LoggerFactory.getLogger(PropertyReader.class);
-    private String propFilePath;
+@Slf4j
+public class PropertyReader extends ConfigTestElement implements ConfigElement, TestBean, TestStateListener, Serializable {
+    @Getter @Setter private String propFilePath;
 
-    public PropertyReader() {
-        super();
+    @Override
+    public void addConfigElement(ConfigElement config) {
     }
 
-    public void testEnded() {
-
-    }
-
-    public void testEnded(String arg0) {
-        testEnded();
-    }
-
+    @Override
     public void testStarted() {
-        if (getPropFilePath() != null && getPropFilePath().length() > 0) {
+        if (Objects.nonNull(getPropFilePath()) && !getPropFilePath().trim().isEmpty()) {
             try {
                 Path path = Paths.get(getPropFilePath());
-                if (!path.isAbsolute())
-                    path = Paths.get(FileServer.getFileServer().getBaseDir(), path.toString());
+                if (!path.isAbsolute()) path = Paths.get(FileServer.getFileServer().getBaseDir(), path.toString());
                 JMeterUtils.getJMeterProperties().load(new FileInputStream(path.toString()));
                 log.info("Property file reader - loading the properties from " + path);
-
             } catch (FileNotFoundException e) {
                 log.error(e.getMessage());
             } catch (IOException e) {
@@ -47,22 +42,17 @@ public class PropertyReader extends ConfigTestElement implements TestBean, TestS
         }
     }
 
+    @Override
     public void testStarted(String arg0) {
         testStarted();
     }
 
-    /**
-     * @return the file path
-     */
-    public String getPropFilePath() {
-        return this.propFilePath;
+    @Override
+    public void testEnded() {
     }
 
-    /**
-     * @param propFilePath the file path to read
-     */
-    public void setPropFilePath(String propFilePath) {
-        this.propFilePath = propFilePath;
+    @Override
+    public void testEnded(String arg0) {
+        testEnded();
     }
-
 }
